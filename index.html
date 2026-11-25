@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Colindători pe Planeta Neon</title>
+<style>
+:root{--cyan:#5ff7ff;--pink:#ff5ccf;--glass:rgba(7,13,35,.78)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#030616;color:#fff;font-family:Inter,system-ui,Segoe UI,Arial}
+#scene{position:fixed;inset:0}canvas{display:block}
+.panel{position:fixed;z-index:3;background:var(--glass);border:1px solid rgba(95,247,255,.35);box-shadow:0 0 30px #00d9ff22;backdrop-filter:blur(14px);border-radius:18px}
+#brand{top:18px;left:18px;padding:13px 17px;max-width:min(420px,calc(100vw - 36px))}
+#brand strong{display:block;font-size:15px;letter-spacing:.13em;color:var(--cyan)}
+#brand span{display:block;color:#c8d7ff;font-size:12px;margin-top:4px}
+#controls{right:18px;top:18px;width:265px;padding:15px;max-height:calc(100vh - 36px);overflow:auto}
+h2{font-size:13px;letter-spacing:.12em;color:var(--cyan);margin:0 0 12px}
+label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#dce7ff;margin:12px 0 6px}
+select,button{font:inherit;color:white;background:#121e42;border:1px solid #345b86;border-radius:9px;padding:9px}
+select{width:100%}input[type=range]{width:100%;accent-color:#55edff}
+button{cursor:pointer;transition:.2s}button:hover{border-color:var(--pink);box-shadow:0 0 14px #ff5ccf44}
+.row{display:flex;gap:7px}.row button{flex:1}
+#hint{left:18px;bottom:18px;padding:10px 13px;font-size:11px;color:#cbdcff}
+#status{position:fixed;z-index:5;left:50%;bottom:18px;transform:translateX(-50%);font-size:12px;color:#ffb5c8;background:#260d24dd;padding:8px 12px;border-radius:9px;display:none;max-width:90vw}
+#start{position:fixed;inset:0;z-index:4;display:grid;place-items:center;background:radial-gradient(ellipse at center,#13285b99,#020515ee)}
+#start .box{max-width:430px;margin:20px;text-align:center;padding:30px;border:1px solid #56eaff66;border-radius:24px;background:#07132be8;box-shadow:0 0 60px #00d9ff33}
+#start h1{font-size:clamp(26px,5vw,42px);line-height:1.05;margin:0 0 12px;background:linear-gradient(90deg,var(--cyan),#fff,var(--pink));color:transparent;background-clip:text}
+#start p{font-size:13px;line-height:1.6;color:#c5d8ff}
+#enter{padding:12px 22px;background:linear-gradient(90deg,#087e9d,#9b267c);border:0;font-weight:700;letter-spacing:.08em}
+@media(max-width:650px){#controls{top:auto;bottom:70px;right:10px;width:220px;max-height:54vh;padding:12px}#brand{top:10px;left:10px}#hint{left:10px;bottom:10px;font-size:10px}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="brand" class="panel"><strong>✦ COLINDĂTORI PE PLANETA NEON ✦</strong><span>Un concert intergalactic, sub ninsoare de stele</span></div>
+<div id="controls" class="panel">
+<h2>▸ PANOU DE CONTROL</h2>
+<label for="track">Coloană sonoră</label>
+<select id="track"><option value="aurora">Auroră electronică</option><option value="bells">Clopoței cosmici</option><option value="pulse">Beat interstelar</option><option value="silent">Fără muzică</option></select>
+<label for="volume">Volum <span id="volv">35%</span></label><input id="volume" type="range" min="0" max="100" value="35">
+<label for="snow">Ninsoare cosmică <span id="snowv">70%</span></label><input id="snow" type="range" min="0" max="100" value="70">
+<label for="speed">Viteza camerei <span id="speedv">35%</span></label><input id="speed" type="range" min="0" max="100" value="35">
+<div class="row" style="margin-top:13px"><button id="orbit">Oprește rotația</button><button id="lights">Lumini: ON</button></div>
+<div class="row" style="margin-top:8px"><button id="crowd">Public: ON</button><button id="reset">Resetare</button></div>
+</div>
+<div id="hint" class="panel">🖱️ Trage pentru a roti camera · Scroll pentru zoom</div>
+<div id="status"></div>
+<div id="start"><div class="box"><h1>NOAPTEA<br>DE PE PLANETA NEON</h1><p>Roboți colindători, o scenă plutitoare, munți de cristal și o auroră care dansează deasupra galaxiei.</p><button id="enter">INTRĂ ÎN CONCERT</button></div></div>
+<script type="module">
+const statusEl=document.querySelector('#status');
+function report(e){statusEl.style.display='block';statusEl.textContent='Eroare: '+(e?.message||e);console.error(e)}
+window.addEventListener('error',e=>report(e.error||e.message));
+window.addEventListener('unhandledrejection',e=>report(e.reason));
+try{
+const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+const host=document.querySelector('#scene');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x030616);scene.fog=new THREE.FogExp2(0x07112b,.012);
+const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,500);camera.position.set(0,13,34);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;host.appendChild(renderer.domElement);
+const root=new THREE.Group();scene.add(root);
+const hemi=new THREE.HemisphereLight(0x9bcaff,0x10102c,1.7);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xffffff,2.1);key.position.set(-10,20,12);key.castShadow=true;scene.add(key);
+const neon1=new THREE.PointLight(0x18ddff,35,55);neon1.position.set(-8,7,2);scene.add(neon1);
+const neon2=new THREE.PointLight(0xff39c9,28,48);neon2.position.set(9,6,-4);scene.add(neon2);
+const mat=(c,rough=.55,metal=0)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,metalness:metal});
+const floorMat=mat(0x101b3b,.85,.15), dark=mat(0x10152b,.4,.5), ice=mat(0x8cecff,.2,.25), gold=mat(0xffc85a,.3,.55), white=mat(0xeaf6ff,.7), pink=mat(0xff3ebc,.3,.25);
+function mesh(g,m,x,y,z,parent=root){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
+function light(color,intensity,distance,x,y,z){const l=new THREE.PointLight(color,intensity,distance);l.position.set(x,y,z);scene.add(l);return l}
+const floor=mesh(new THREE.CylinderGeometry(19,20,1.4,64),floorMat,0,-1.2,0);floor.scale.z=.82;
+const ring=mesh(new THREE.TorusGeometry(17,.12,8,120),new THREE.MeshBasicMaterial({color:0x28eaff}),0,-.38,0);ring.rotation.x=Math.PI/2;
+for(let i=0;i<3;i++){const r=mesh(new THREE.TorusGeometry(18+i*.55,.035,6,120),new THREE.MeshBasicMaterial({color:i%2?0xff40c7:0x3ceaff}),0,-.55-i*.13,0);r.rotation.x=Math.PI/2}
+const stage=mesh(new THREE.CylinderGeometry(8,8.8,.8,48),dark,0,-.25,-2);stage.position.y=-.1;
+const stageTop=mesh(new THREE.CylinderGeometry(7.9,7.9,.15,48),mat(0x182b54,.3,.4),0,.35,-2);
+for(let i=0;i<16;i++){let a=i*Math.PI*2/16;let p=mesh(new THREE.BoxGeometry(.18,.18,.18),new THREE.MeshBasicMaterial({color:i%2?0xff49d0:0x4df5ff}),Math.cos(a)*7.5,.48,-2+Math.sin(a)*7.5);p.rotation.y=a}
+const dome=mesh(new THREE.SphereGeometry(5.5,32,20,0,Math.PI*2,0,Math.PI/2),new THREE.MeshBasicMaterial({color:0x173b68,wireframe:true,transparent:true,opacity:.18}),0,.5,-8);dome.scale.y=.8;
+// crystalline mountains
+for(let i=0;i<22;i++){let a=i/22*Math.PI*2,r=22+Math.random()*5,h=3+Math.random()*8;let m=mesh(new THREE.ConeGeometry(1.5+Math.random()*2,h,5),i%2?ice:mat(0x314b83,.35,.25),Math.cos(a)*r,h/2-1,Math.sin(a)*r);m.rotation.y=Math.random()*2}
+ // floating neon arches
+for(let i=0;i<5;i++){let arch=mesh(new THREE.TorusGeometry(4.5+i*.6,.055,8,100,Math.PI),new THREE.MeshBasicMaterial({color:i%2?0xff4bc9:0x43efff}),0,2+i*.65,-9-i*.5);arch.rotation.z=Math.PI}
+ // giant glowing planet and rings
+const planet=mesh(new THREE.SphereGeometry(4,40,32),new THREE.MeshStandardMaterial({color:0x8a3ec9,emissive:0x35106b,roughness:.35}),-13,13,-24);
+const pr=mesh(new THREE.TorusGeometry(6,.09,8,100),new THREE.MeshBasicMaterial({color:0x5df5ff}),-13,13,-24);pr.rotation.x=1.1;pr.rotation.y=.2;
+ // robot band
+function robot(x,z,accent,scale=1){
+ const g=new THREE.Group();root.add(g);g.position.set(x,.55,z);g.scale.setScalar(scale);
+ const body=mesh(new THREE.CapsuleGeometry(.48,.8,4,8),mat(0x9db8d8,.28,.75),0,0,0,g);
+ const head=mesh(new THREE.BoxGeometry(.95,.72,.7),mat(0xc9e6f4,.25,.7),0,1.05,0,g);
+ const visor=mesh(new THREE.BoxGeometry(.72,.22,.08),new THREE.MeshBasicMaterial({color:accent}),0,1.1,.37,g);
+ for(let s of [-1,1]){mesh(new THREE.CylinderGeometry(.12,.15,.65,8),dark,s*.62,-.1,0,g);mesh(new THREE.SphereGeometry(.16,12,8),mat(0x9db8d8,.3,.6),s*.62,-.48,0,g);mesh(new THREE.CylinderGeometry(.1,.12,.55,8),dark,s*.25,-.65,0,g)}
+ const antenna=mesh(new THREE.CylinderGeometry(.025,.025,.35,8),gold,0,1.58,0,g);mesh(new THREE.SphereGeometry(.11,12,8),new THREE.MeshBasicMaterial({color:accent}),0,1.78,0,g);
+ return {g,head,visor};
+}
+const band=[robot(-3.2,1,0x4ef4ff,1.1),robot(0,1.2,0xff52d2,1.2),robot(3.2,1,0xffd45c,1.1),robot(5.2,-2,0x9b83ff,.85)];
+// instruments / DJ decks
+mesh(new THREE.BoxGeometry(2.2,.35,.8),dark,0,.9,2);
+for(let i=0;i<5;i++){let knob=mesh(new THREE.CylinderGeometry(.11,.11,.12,16),i%2?pink:ice,-.8+i*.4,1.13,2);knob.rotation.x=Math.PI/2}
+const crowd=new THREE.Group();root.add(crowd);
+for(let i=0;i<46;i++){let a=Math.random()*Math.PI*2,r=9+Math.random()*5,x=Math.cos(a)*r,z=Math.sin(a)*r-1;let c=i%3===0?0xff4ec9:i%3===1?0x45eaff:0xffd15c;let b=mesh(new THREE.CapsuleGeometry(.16,.42,3,6),mat(c,.5,.2),x,-.25,z,crowd);b.rotation.z=(Math.random()-.5)*.3}
+ // distant floating buildings
+for(let i=0;i<18;i++){let x=(Math.random()-.5)*55,z=-16-Math.random()*28,h=3+Math.random()*10;let b=mesh(new THREE.BoxGeometry(1.5+Math.random()*2,h,1.5),dark,x,h/2-1,z);for(let j=0;j<4;j++)mesh(new THREE.BoxGeometry(.12,.18,.04),new THREE.MeshBasicMaterial({color:j%2?0x35eaff:0xff49c9}),x-0.35+j*.23, h/2-1,z+.78)}
+// starfield
+const starsGeo=new THREE.BufferGeometry(),starPos=[];for(let i=0;i<1800;i++)starPos.push((Math.random()-.5)*180,Math.random()*90-5,(Math.random()-.5)*160-25);starsGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPos,3));const stars=new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xc7eaff,size:.16}));scene.add(stars);
+// snow particles
+const N=3500,snowGeo=new THREE.BufferGeometry(),snowPos=new Float32Array(N*3);for(let i=0;i<N;i++){snowPos[i*3]=(Math.random()-.5)*55;snowPos[i*3+1]=Math.random()*35;snowPos[i*3+2]=(Math.random()-.5)*55}snowGeo.setAttribute('position',new THREE.BufferAttribute(snowPos,3));const snow=new THREE.Points(snowGeo,new THREE.PointsMaterial({color:0xc8f8ff,size:.09,transparent:true,opacity:.9}));scene.add(snow);
+ // aurora ribbons
+const aurora=new THREE.Group();scene.add(aurora);
+for(let j=0;j<4;j++){let pts=[];for(let i=0;i<=100;i++){let x=(i-50)*.65,y=18+Math.sin(i*.11+j)*2+Math.sin(i*.035+j)*2;pts.push(new THREE.Vector3(x,y,-35+j*3))}let curve=new THREE.CatmullRomCurve3(pts);let tube=new THREE.Mesh(new THREE.TubeGeometry(curve,150,.16,8,false),new THREE.MeshBasicMaterial({color:[0x31ffd0,0x31aaff,0xc34dff,0xff4fbf][j],transparent:true,opacity:.38}));aurora.add(tube)}
+ // music generated locally with WebAudio, starts after click
+let audioCtx=null,master=null,oscillators=[],musicTimer=null;
+function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}oscillators.forEach(o=>{try{o.stop()}catch{}});oscillators=[]}
+function playMusic(kind){stopMusic();if(!audioCtx||kind==='silent')return;const notes=kind==='bells'?[523,659,784,659,587,698,880,698]:kind==='pulse'?[110,110,165,147,110,196,165,147]:[220,330,392,494,392,330,247,330];let idx=0;musicTimer=setInterval(()=>{let f=notes[idx++%notes.length];let o=audioCtx.createOscillator(),gain=audioCtx.createGain();o.type=kind==='bells'?'sine':'triangle';o.frequency.value=f;gain.gain.setValueAtTime(0,audioCtx.currentTime);gain.gain.linearRampToValueAtTime(.12,audioCtx.currentTime+.025);gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.42);o.connect(gain);gain.connect(master);o.start();o.stop(audioCtx.currentTime+.45);oscillators.push(o);if(oscillators.length>24)oscillators.shift()},kind==='pulse'?240:330)}
+const $=s=>document.querySelector(s);let rotating=true,showLights=true,showCrowd=true,snowAmount=.7,cameraSpeed=.35,volume=.35,started=false;
+$('#enter').onclick=()=>{try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();master=audioCtx.createGain();master.gain.value=volume;master.connect(audioCtx.destination);audioCtx.resume();playMusic($('#track').value)}catch(e){report(e)}$('#start').style.display='none';started=true};
+$('#track').onchange=()=>playMusic($('#track').value);
+$('#volume').oninput=e=>{volume=e.target.value/100;$('#volv').textContent=e.target.value+'%';if(master)master.gain.value=volume};
+$('#snow').oninput=e=>{snowAmount=e.target.value/100;$('#snowv').textContent=e.target.value+'%'};
+$('#speed').oninput=e=>{cameraSpeed=e.target.value/100;$('#speedv').textContent=e.target.value+'%'};
+$('#orbit').onclick=()=>{rotating=!rotating;$('#orbit').textContent=rotating?'Oprește rotația':'Pornește rotația'};
+$('#lights').onclick=()=>{showLights=!showLights;neon1.visible=neon2.visible=showLights;$('#lights').textContent='Lumini: '+(showLights?'ON':'OFF')};
+$('#crowd').onclick=()=>{showCrowd=!showCrowd;crowd.visible=showCrowd;$('#crowd').textContent='Public: '+(showCrowd?'ON':'OFF')};
+$('#reset').onclick=()=>{camera.position.set(0,13,34);camera.lookAt(0,2,-2);rotating=true;cameraSpeed=.35;$('#speed').value=35;$('#speedv').textContent='35%';$('#orbit').textContent='Oprește rotația'};
+let dragging=false,lastX=0,lastY=0,theta=0,phi=.25,dist=37;
+renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointerup',()=>dragging=false);
+renderer.domElement.addEventListener('pointermove',e=>{if(!dragging)return;theta-=(e.clientX-lastX)*.005;phi=Math.max(-.15,Math.min(.9,phi+(e.clientY-lastY)*.004));lastX=e.clientX;lastY=e.clientY});
+renderer.domElement.addEventListener('wheel',e=>{dist=Math.max(18,Math.min(65,dist+e.deltaY*.025))},{passive:true});
+camera.lookAt(0,2,-2);const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);let t=clock.getElapsedTime(),dt=Math.min(clock.getDelta(),.04);
+ if(rotating&&!dragging)theta+=dt*cameraSpeed*.18;
+ camera.position.set(Math.sin(theta)*dist,10+Math.sin(phi)*8,Math.cos(theta)*dist);camera.lookAt(0,3,-2);
+ band.forEach((b,i)=>{b.g.position.y=.55+Math.sin(t*2+i)*.16;b.g.rotation.y=Math.sin(t*.7+i)*.12;b.visor.material.color.setHSL((.52+i*.17+t*.025)%1,.9,.65)});
+ planet.rotation.y=t*.04;pr.rotation.z=t*.07;aurora.rotation.y=Math.sin(t*.1)*.08;neon1.intensity=showLights?28+Math.sin(t*3)*8:0;neon2.intensity=showLights?24+Math.cos(t*2.4)*8:0;
+ const p=snow.geometry.attributes.position.array;for(let i=0;i<N;i++){p[i*3+1]-=(.06+snowAmount*.24);p[i*3]+=Math.sin(t+i)*.0015;if(p[i*3+1]<-2){p[i*3+1]=34;p[i*3]=(Math.random()-.5)*55}}snow.geometry.attributes.position.needsUpdate=true;snow.material.opacity=.08+snowAmount*.85;snow.visible=snowAmount>0;
+ renderer.render(scene,camera)}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+}catch(e){report(e)}
+</script>
+</body>
+</html>
